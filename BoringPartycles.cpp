@@ -6,10 +6,10 @@
 #include <cmath>//for sqrt
 #include <sys/time.h>
 
-int n = 2000 ; 
-int nr = 1; 
+int n = 2 ;
+int nr = 5;
 int w = 640;//breite
-int h = 480;//hohe
+int h = 200;//hohe
 
 // num of particles
 int eventhandler(){
@@ -46,35 +46,35 @@ int eventhandler(){
     return 0;
 }
 typedef struct _ball{ 
-    int r; 
-    float c[2]; 
-    float v[2]; 
-    int m; 
+    int r; // radius
+    float c[2]; //center of ball
+    float v[2]; //velocity
+    int m;  // mass
 }ball; 
 
-float dot(float x[], float y[]){
+float dot(float x[2], float y[2]){
     return (x[0]*y[0] + x[1]*y[1]);
 }
 
-float* sub(float x[], float y[], float z[]){
-    z[0] = x[0] - y[0];
-    z[1] = x[1] - y[1];
-    return z;
+float* sub(float x[2], float y[2], float out[2]){
+    out[0] = x[0] - y[0];
+    out[1] = x[1] - y[1];
+    return out;
 }
-float* add(float x[], float y[], float z[]){
-    z[0] = x[0] + y[0];
-    z[1] = x[1] + y[1];
-    return z;
+float* add(float x[2], float y[2], float out[2]){
+    out[0] = x[0] + y[0];
+    out[1] = x[1] + y[1];
+    return out;
 }
-float norm(float x[]){
+float norm(float x[2]){
     return std::sqrt(x[0]*x[0] + x[1]*x[1]);
 }
-float ranflo(int start, int stop){
+float ranflo(float start, float stop){
     //int start=-2;
     //int stop=2;
-    int range = stop - start;
+    float range = stop - start;
     int res=100;
-    float x= (float)( (rand()%(res*range ) +res*start  ));
+    float x= (float)( (rand()%(int)(res*range ) +res*start  ));
     x= x/res;
     return x;
 }
@@ -82,14 +82,14 @@ float ranflo(int start, int stop){
 
 void newball(ball* b){
     //ball * b = (ball *) calloc(1,sizeof(ball));
-    b->r=nr;
-    b->m=1;
+    b->r=ranflo(1,nr);
+    b->m=b->r;
     
-    b->c[0]=ranflo(0, w);
+    b->c[0]=ranflo(0, w/2);
     b->c[1]=ranflo(0, h);
     
-    b->v[0]=ranflo(-2,2);
-    b->v[1]=ranflo(-2,2);
+    b->v[1]=ranflo(0,2);
+    b->v[0]=ranflo(-.1,.1);
     
     //return b;
 }
@@ -108,71 +108,112 @@ void move_ball(ball * b){
 
 
 void draw_ball(SDL_Renderer* ren, ball ball){
-    //the fuck?
-    //wieso kann eine variable den namen seines typen haben?
+
     
     SDL_RenderDrawLine(ren, ball.c[0] + ball.r, ball.c[1], ball.c[0] - ball.r, ball.c[1]);
     SDL_RenderDrawLine(ren, ball.c[0], ball.c[1] + ball.r, ball.c[0], ball.c[1] - ball.r);
     //printf("draw ball\n");
     
     }
+// Source - https://stackoverflow.com/a
+// Posted by Scotty Stephens, modified by community. See post 'Timeline' for change history
+// Retrieved 2025-12-18, License - CC BY-SA 4.0
+
+void DrawCircle(SDL_Renderer * renderer, int32_t centreX, int32_t centreY, int32_t radius)
+{
+   const int32_t diameter = (radius * 2);
+
+   int32_t x = (radius - 1);
+   int32_t y = 0;
+   int32_t tx = 1;
+   int32_t ty = 1;
+   int32_t error = (tx - diameter);
+
+   while (x >= y)
+   {
+      //  Each of the following renders an octant of the circle
+      SDL_RenderDrawPoint(renderer, centreX + x, centreY - y);
+      SDL_RenderDrawPoint(renderer, centreX + x, centreY + y);
+      SDL_RenderDrawPoint(renderer, centreX - x, centreY - y);
+      SDL_RenderDrawPoint(renderer, centreX - x, centreY + y);
+      SDL_RenderDrawPoint(renderer, centreX + y, centreY - x);
+      SDL_RenderDrawPoint(renderer, centreX + y, centreY + x);
+      SDL_RenderDrawPoint(renderer, centreX - y, centreY - x);
+      SDL_RenderDrawPoint(renderer, centreX - y, centreY + x);
+
+      if (error <= 0)
+      {
+         ++y;
+         error += ty;
+         ty += 2;
+      }
+
+      if (error > 0)
+      {
+         --x;
+         tx += 2;
+         error += (tx - diameter);
+      }
+   }
+}
 
 
-void clip(ball * balls, int i){
-    ball b1 = balls[i];
-    int ii=i;
+void draw_ball_circle(SDL_Renderer* ren, ball ball){
+    DrawCircle(ren, ball.c[0], ball.c[1], ball.r);
+}
+
+void clip(ball * balls, int ballindex){
+    ball b1 = balls[ballindex];
+    int ii=ballindex;
     float z[2];
-    i++;
+
     
-    float temp1[2];
-    float temp2[2];
+    float v_diff[2];
+    float pos_diff[2];
     float vemp1[2];
     float k;
     ball b2;
-    for(; i<n; i++){
+    for(int i = ballindex +1; i<n; i++){
         b2=balls[i];
         sub(b1.c, b2.c, z);
         if( norm(z) < b1.r + b2.r){
             vemp1[0]=b1.v[0];
             vemp1[1]=b1.v[1];
             //v1
-            sub(b1.v, b2.v , temp1);
+            sub(b1.v, b2.v , v_diff);
             
-            sub(b1.c, b2.c , temp2);
+            sub(b1.c, b2.c , pos_diff);
 
-            k = dot(temp1, temp2);
+            k = dot(v_diff, pos_diff);
             
-            k = k / (norm(temp2) * norm(temp2));
+            k = k / pow(norm(pos_diff), 2);
+            pos_diff[0] = pos_diff[0] * k * ( (2 * b2.m) / (b1.m + b2.m) );
+            pos_diff[1] = pos_diff[1] * k * ( (2 * b2.m) / (b1.m + b2.m) );
+
             
-            k = k * ( (2 * b2.m) / (b1.m + b2.m) );
+            sub(b1.v, pos_diff, vemp1);
             
-            temp2[0] = temp2[0] * k;
-            temp2[1] = temp2[1] * k;
-            
-            sub(b1.v, temp2, vemp1);
-            
-            //v1
+            // end v1
             
             
             //v2
-            sub(b2.v, b1.v, temp1);
+            sub(b1.v, b2.v , v_diff);
             
-            sub(b2.c, b1.c, temp2);
+            sub(b1.c, b2.c , pos_diff);
             
-            k = dot(temp2, temp1);
-            k = k / (norm(temp2) * norm(temp2));
+            k = dot(pos_diff, v_diff);
+            k = k / pow(norm(pos_diff), 2);
+            pos_diff[0] = pos_diff[0] * k* ( (2 * b1.m) / (b2.m + b1.m) );
+            pos_diff[1] = pos_diff[1] * k* ( (2 * b1.m) / (b2.m + b1.m) );
             
-            k = k * ( (2 * b1.m) / (b2.m + b1.m) );
-            
-            temp2[0] = temp2[0] * k;
-            temp2[1] = temp2[1] * k;
+
             
             b1.v[0]= vemp1[0];
             b1.v[1]= vemp1[1];
-            sub(b2.v, temp2, vemp1);
+            sub(b2.v, pos_diff, vemp1);
             b2.v[0]= vemp1[0];
             b2.v[1]= vemp1[1];
-            //v2
+            // end v2
             balls[i]=b2;
             
             
@@ -188,8 +229,8 @@ void clip(ball * balls, int i){
             
             //intersect = (self.r+i.r) - np.linalg.norm(i.c - self.c)
             float intersect;
-            sub(b2.c,b1.c,temp1);
-            intersect = b1.r+b2.r - norm(temp1) ;
+            sub(b2.c,b1.c,pos_diff);
+            intersect = b1.r+b2.r - norm(pos_diff) ;
             
             //touch=self.c-i.c
             float touch[2];
@@ -233,14 +274,22 @@ void mainloop(SDL_Renderer* ren){
     //setup
     
     
-    if (1==2){
-        balls[0].r=30;
-        balls[0].m=1000000000;
-        balls[0].v[0]=0.0;
-        balls[0].v[1]=0.0;
-        
-        balls[0].c[0]=300.0;
-        balls[0].c[1]=200.0;
+    if (1==1){
+        balls[n-1].r=30;
+        balls[n-1].m=20;
+        balls[n-1].v[0]=0.0;
+        balls[n-1].v[1]=0.0;
+
+        balls[n-1].c[0]=400.0;
+        balls[n-1].c[1]=100.0;
+
+        balls[n-2].r=30;
+        balls[n-2].m=10;
+        balls[n-2].v[0]=1.0;
+        balls[n-2].v[1]=0.0;
+
+        balls[n-2].c[0]=200.0;
+        balls[n-2].c[1]=100.0;
     }
     
     
@@ -265,7 +314,7 @@ void mainloop(SDL_Renderer* ren){
         SDL_SetRenderDrawColor(ren,0,0,0,255);
         for(int i=0; i<n; i++){
             move_ball(&(balls[i]));
-            draw_ball(ren, balls[i]);
+            draw_ball_circle(ren, balls[i]);
         }
         
         for(int i=0; i<n ; i++){
@@ -283,7 +332,9 @@ void mainloop(SDL_Renderer* ren){
 
 
 
+
 int main(int argc,char** argv){
+
     if (argc==2){
         n= atoi(argv[1]);
         printf("atoi%d\n",n);
