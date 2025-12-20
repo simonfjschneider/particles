@@ -5,6 +5,7 @@
 #include <SDL2/SDL.h>
 #include <cmath>//for sqrt
 #include <sys/time.h>
+#include <assert.h>
 
 int n = 2 ;
 int nr = 5;
@@ -57,11 +58,15 @@ float dot(float x[2], float y[2]){
 }
 
 float* sub(float x[2], float y[2], float out[2]){
+    assert(out != x);
+    assert(out != y);
     out[0] = x[0] - y[0];
     out[1] = x[1] - y[1];
     return out;
 }
 float* add(float x[2], float y[2], float out[2]){
+    assert(out != x);
+    assert(out != y);
     out[0] = x[0] + y[0];
     out[1] = x[1] + y[1];
     return out;
@@ -176,11 +181,7 @@ void clip(ball * balls, int ballindex){
     for(int i = ballindex +1; i<n; i++){
         b2=balls[i];
         sub(b1.c, b2.c, z);
-        printf("zzz: %f\n", norm(z));
         if( norm(z) < b1.r + b2.r){
-            printf("b1.v = (%f, %f)   b2.v = (%f, %f)\n",
-                    b1.v[0], b1.v[1],
-                    b2.v[0], b2.v[1]);
 
             //v1
             sub(b1.v, b2.v , v_diff);
@@ -188,28 +189,28 @@ void clip(ball * balls, int ballindex){
             sub(b1.c, b2.c , pos_diff);
 
             k = dot(v_diff, pos_diff);
-
             k = k / pow(norm(pos_diff), 2);
-            pos_diff[0] = pos_diff[0] * k * ( (2 * b2.m) / (b1.m + b2.m) );
-            pos_diff[1] = pos_diff[1] * k * ( (2 * b2.m) / (b1.m + b2.m) );
+            k = k * (float)(2 * b2.m) / (float)(b1.m + b2.m);
+
+            pos_diff[0] = pos_diff[0] * k;
+            pos_diff[1] = pos_diff[1] * k;
 
             
             sub(b1.v, pos_diff, vemp1);
             
             // end v1
-            
-            
+
             //v2
-            sub(b1.v, b2.v , v_diff);
+            sub(b2.v, b1.v , v_diff);
             
-            sub(b1.c, b2.c , pos_diff);
+            sub(b2.c, b1.c , pos_diff);
             
             k = dot(v_diff, pos_diff);
             k = k / pow(norm(pos_diff), 2);
-            pos_diff[0] = pos_diff[0] * k* ( (2 * b1.m) / (b2.m + b1.m) );
-            pos_diff[1] = pos_diff[1] * k* ( (2 * b1.m) / (b2.m + b1.m) );
-            
+            k = k * ( (float)(2 * b1.m) / (float)(b2.m + b1.m) );
 
+            pos_diff[0] = pos_diff[0] * k;
+            pos_diff[1] = pos_diff[1] * k;
             
             b1.v[0]= vemp1[0];
             b1.v[1]= vemp1[1];
@@ -218,13 +219,13 @@ void clip(ball * balls, int ballindex){
             b2.v[1]= vemp1[1];
             // end v2
             balls[i]=b2;
-            vemp1[0] = 22;
-            printf("b1.v = (%f, %f)   b2.v = (%f, %f)\n",
+            /*printf("b1.v = (%f, %f)   b2.v = (%f, %f)\n",
                     b1.v[0], b1.v[1],
                     b2.v[0], b2.v[1]);
             printf("b1.c = (%f, %f)   b2.c = (%f, %f)\n",
                     b1.c[0], b1.c[1],
                     b2.c[0], b2.c[1]);
+            */
             //untangle:
             
             /*
@@ -283,8 +284,8 @@ void mainloop(SDL_Renderer* ren){
     
     if (1==1){
         balls[n-1].r=30;
-        balls[n-1].m=20;
-        balls[n-1].v[0]=-1.0;
+        balls[n-1].m=200;
+        balls[n-1].v[0]=0.0;
         balls[n-1].v[1]=0.0;
 
         balls[n-1].c[0]=400.0;
@@ -292,7 +293,7 @@ void mainloop(SDL_Renderer* ren){
 
         balls[n-2].r=30;
         balls[n-2].m=20;
-        balls[n-2].v[0]=2.0;
+        balls[n-2].v[0]=1.0;
         balls[n-2].v[1]=0.0;
 
         balls[n-2].c[0]=20.0;
@@ -332,7 +333,7 @@ void mainloop(SDL_Renderer* ren){
         SDL_RenderPresent(ren);
         
         gettimeofday(&T1,NULL);
-        printf("Time spent  (%ld,%ld)\n",T1.tv_sec-T0.tv_sec, T1.tv_usec-T0.tv_usec);
+        //printf("Time spent  (%ld,%ld)\n",T1.tv_sec-T0.tv_sec, T1.tv_usec-T0.tv_usec);
     }
     
 }

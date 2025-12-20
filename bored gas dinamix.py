@@ -3,7 +3,7 @@ from pygame.locals import *
 import random,pygame,sys
 
 w=640
-h=640
+h=300
 disp=pygame.display.set_mode((w,h))
 
 
@@ -35,21 +35,22 @@ class ball:
     def clip(self,balls):#gets list of balls and checks himself against them
         for i in balls:
             if np.linalg.norm(i.c - self.c) < (self.r+i.r):
+
                 vtemp=self.v.copy()
-                #massfacktor=i.m*2 / (self.m+i.m)
+                massfacktor=i.m*2 / (self.m+i.m)
                 d = np.dot(self.v-i.v , self.c-i.c)
                 d = d / (np.linalg.norm(self.c - i.c)**2)
                 d = d * (self.c - i.c)
-                d=d#*massfacktor
+                d=d*massfacktor
                 self.v=self.v - d
 
                 #stupid second time for other ball
-                #massfacktor=self.m*2 / (self.m+i.m)
+                massfacktor=self.m*2 / (self.m+i.m)
                 xdiff=i.c-self.c
                 d = np.dot(i.v-vtemp , xdiff)
-                d = d / (np.linalg.norm(i.c - self.c)**2)
+                d = d / (np.linalg.norm(xdiff)**2)
                 d = d * (xdiff)
-                d=d#*massfacktor
+                d=d*massfacktor
                 i.v=i.v - d
 
         
@@ -69,18 +70,19 @@ class ball:
 
 balls=[]
 s=2#maxspeed
-for i in range(500):
-    a=random.uniform(0,w)
+for i in range(00):
+    a=random.uniform(0,w/2)
     b=random.uniform(0,h)
 
     
-    c=random.uniform(-s,s)
-    d=random.uniform(-s,s)
+    c=random.uniform(0,s)
+    d=random.uniform(-.1,.1)
     #newball=ball(1,[a,b],[c,d],1)
-    balls.append(ball(1,[a,b],[c,d],1))
+    balls.append(ball(3,[a,b],[c,d],3))
 
 
-
+balls.append(ball(30,[400.0,100.0],[0,0],200))
+balls.append(ball(30,[200.0,100.0],[1,0],20))
 while True:
     #print(sum(map(float,balls)))
     pygame.display.update()
@@ -91,8 +93,8 @@ while True:
             pygame.quit()
             sys.exit()
     for i, k in enumerate(balls):
-        k.clip(balls[i+1:])#check collision with all bigger balls
-    for i, k in enumerate(balls):
+        k.clip(balls[i+1:])#check collision with all higher balls
+    #for i, k in enumerate(balls):
         k.untangle(balls[i+1:])
 
     for i in balls:
