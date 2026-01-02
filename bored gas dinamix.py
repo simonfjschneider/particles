@@ -3,11 +3,68 @@ from pygame.locals import *
 import random,pygame,sys
 
 w=640
-h=300
+h=640
 disp=pygame.display.set_mode((w,h))
 
 
+class line:
+    """
+    this just defines one line that balls cann collide with
+    itself does nothing else and cant move
 
+    """
+    def __init__(self, a,b,c,d):
+
+        if a < c: # only allow lines to go one direction
+            # this might be silly but whatever
+            a,c = c,a
+            b,d = d,b
+
+        self.a = a
+        self.b = b
+        self.c = c
+        self.d = d
+
+        n = np.array([c,d]) - np.array([a,b])
+        n = n / np.linalg.norm(n)
+        self.normal = np.array([-n[1],n[0]])
+
+        """
+        we will be using the wiki formula
+        d = abs(d-b)x-(c-a)y+cb-da )/sqrt((d-b)**2+(c-a)**2)
+        so we can precompute a lot of this
+        distance = abs(f1x-f2y+f3)/divisor
+        """
+        self.divisor = np.sqrt((d-b)**2+(c-a)**2)
+        self.f1 = d-b
+        self.f2 = c-a
+        self.f3 = c*b - d*a
+
+        if a==c or b == d:
+            # this is the "trivial" case of a axis aligned line
+            # we can do fancy stuff here, ie have the calcualtions ge way easier
+            pass
+
+
+    def clip(self, balls):
+        for i in balls:
+            distance = abs(self.f1*i.c[0] - self.f2*i.c[1] +self.f3)/self.divisor
+
+            if distance > i.r:
+                continue
+            if self.a < i.c[0]-i.r or i.c[0]+i.r < self.c:
+                continue
+            if self.b > self.d and (self.b < i.c[1]-i.r or i.c[1]+i.r < self.d):
+                continue
+            if self.d > self.b and (self.d < i.c[1]-i.r or i.c[1]+i.r< self.b):
+                continue
+            i.v = i.v - 2*np.dot(i.v,self.normal) * self.normal
+
+            # prolly also have to unstick from here, might be even more important
+
+
+    def draw(self, disp):
+        pygame.draw.line(disp, (255,0,0), (self.a, self.b), (self.c,self.d))
 
 class ball:
     def __init__(self,r,c,v,m):
@@ -32,7 +89,7 @@ class ball:
                 i.c-=touch
             
         
-    def clip(self,balls):#gets list of balls and checks himself against them
+    def clip(self, balls):#gets list of balls and checks himself against them
         for i in balls:
             if np.linalg.norm(i.c - self.c) < (self.r+i.r):
 
@@ -70,9 +127,9 @@ class ball:
 
 balls=[]
 s=2#maxspeed
-for i in range(00):
-    a=random.uniform(0,w/2)
-    b=random.uniform(0,h)
+for i in range(100):
+    a=random.uniform(150,200)
+    b=random.uniform(150,200)
 
     
     c=random.uniform(0,s)
@@ -81,13 +138,21 @@ for i in range(00):
     balls.append(ball(3,[a,b],[c,d],3))
 
 
-balls.append(ball(30,[400.0,100.0],[0,0],200))
-balls.append(ball(30,[200.0,100.0],[1,0],20))
+#balls.append(ball(30,[400.0,100.0],[0,0],200))
+#balls.append(ball(30,[200.0,100.0],[-1,0],20))
+lines = []
+
+lines.append(line(100,100,100,300))
+lines.append(line(100,100,300,100))
+lines.append(line(300,300,100,300))
+lines.append(line(300,300,300,100))
+
+
 while True:
     #print(sum(map(float,balls)))
     pygame.display.update()
     pygame.time.delay(10)
-    pygame.draw.rect(disp,(255,255,187),(0,0,w,h))
+    pygame.draw.rect(disp,(255,255,187),(0,0,w,h))  # oh no, im really just drawing a big rect over every frame
     for event in pygame.event.get():
         if event.type == QUIT:
             pygame.quit()
@@ -97,11 +162,16 @@ while True:
     #for i, k in enumerate(balls):
         k.untangle(balls[i+1:])
 
+    for i in lines:
+        i.clip(balls)
+        i.draw(disp)
+
+    energy = 0
     for i in balls:
         i.move()
         i.draw(disp)
-    
-
+        energy += np.sqrt(i.v[0]**2 + i.v[1]**2)
+        print(energy)
 
 
 
