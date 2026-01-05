@@ -7,10 +7,10 @@
 #include <sys/time.h>
 #include <assert.h>
 
-int n = 2 ;
+int n = 200 ;
 int nr = 5;
-int w = 640;//breite
-int h = 200;//hohe
+int w = 400;//breite
+int h = 400;//hohe
 
 // num of particles
 int eventhandler(){
@@ -51,15 +51,37 @@ typedef struct _ball{
     float c[2]; //center of ball
     float v[2]; //velocity
     int m;  // mass
-}ball; 
+}ball;
+
+typedef struct _line{
+    // a line goes from point a,b to point c,d
+    int a;
+    int b;
+    int c;
+    int d;
+
+    float normal[2];
+    /*
+     we will be using the wiki formula
+    d = abs(d-b)x-(c-a)y+cb-da )/sqrt((d-b)**2+(c-a)**2)
+    so we can precompute a lot of this
+    distance = abs(f1x-f2y+f3)/divisor
+     */
+    int f1;
+    int f2;
+    int f3;
+    float divisor;
+
+}line;
+
+
 
 float dot(float x[2], float y[2]){
     return (x[0]*y[0] + x[1]*y[1]);
 }
 
+
 float* sub(float x[2], float y[2], float out[2]){
-    assert(out != x);
-    assert(out != y);
     out[0] = x[0] - y[0];
     out[1] = x[1] - y[1];
     return out;
@@ -85,13 +107,66 @@ float ranflo(float start, float stop){
 }
 
 
+void build_line(line * l){
+    // i expect the points a to d to be set
+    // so this function will only calculate f1 f2 f3 and divisor
+    // well it will also enforce the downward line constrain
+    //    so the ab cd points might be swapped
+
+    if (l->a < l->c){
+        int temp;
+        temp = l->a;
+        l->a = l->c;
+        l->c = temp;
+        temp = l->b;
+        l->b = l->d;
+        l->d = temp;
+    }
+
+    float n[2];
+    n[0] = l->c - l->a;
+    n[1] = l->d - l->b;
+    float nor = norm(n);
+    l->normal[0] = - (n[1] / nor);
+    l->normal[1] = n[0]/nor;
+
+    l->divisor = std::sqrt((l->d - l->b)*(l->d - l->b) + (l->c - l->a)*(l->c - l->a));
+    l->f1 = l->d - l->b;
+    l->f2 = l->c - l->a;
+    l->f3 = l->c*l->b - l->d*l->a;
+}
+
+void clip_line(ball * balls, line* self){
+    int distance;
+    for (int i=0; i<n; i++){
+        distance = std::abs(self->f1*balls[i].c[0] - self->f2*balls[i].c[1] +self->f3)/self->divisor;
+        if (distance > balls[i].r){
+            continue;
+        }
+        if (self->a < balls[i].c[0]-balls[i].r or balls[i].c[0]+balls[i].r < self->c){
+            continue;
+        }
+        if (self->b > self->d and (self->b < balls[i].c[1]-balls[i].r or balls[i].c[1]+balls[i].r < self->d)){
+            continue;
+        }
+        if (self->d > self->b and (self->d < balls[i].c[1]-balls[i].r or balls[i].c[1]+balls[i].r< self->b)){
+            continue;
+        }
+        float temp[2];
+        temp[0] = 2*dot(balls[i].v,self->normal) * self->normal[0];
+        temp[1] = 2*dot(balls[i].v,self->normal) * self->normal[1];
+        sub(balls[i].v , temp, balls[i].v);
+    }
+
+}
+
 void newball(ball* b){
     //ball * b = (ball *) calloc(1,sizeof(ball));
     b->r=ranflo(1,nr);
     b->m=b->r;
     
-    b->c[0]=ranflo(0, w/2);
-    b->c[1]=ranflo(0, h);
+    b->c[0]=ranflo(150, 200);
+    b->c[1]=ranflo(150, 200);
     
     b->v[1]=ranflo(0,2);
     b->v[0]=ranflo(-.1,.1);
@@ -236,12 +311,12 @@ void clip(ball * balls, int ballindex){
             
             */
             
-            //intersect = (self.r+i.r) - np.linalg.norm(i.c - self.c)
+            //intersect = (self->r+i.r) - np.linalg.norm(i.c - self->c)
             float intersect;
             sub(b2.c,b1.c,pos_diff);
             intersect = b1.r+b2.r - norm(pos_diff) ;
             intersect = intersect + .01;
-            //touch=self.c-i.c
+            //touch=self->c-i.c
             float touch[2];
             sub(b1.c, b2.c, touch);
             
@@ -254,7 +329,7 @@ void clip(ball * balls, int ballindex){
             touch[0] = ( touch[0] * intersect ) / 2;
             touch[1] = ( touch[1] * intersect ) / 2;
             
-            //self.c+=touch
+            //self->c+=touch
             //i.c-=touch
             b1.c[0]+=touch[0];
             b1.c[1]+=touch[1];
@@ -273,16 +348,40 @@ void clip(ball * balls, int ballindex){
 void mainloop(SDL_Renderer* ren){
     
     //setup
-        ball* balls = (ball*) calloc(n, sizeof(ball));
-        //ball balls[10];
-        for (int i=0; i<n; i++){
-            newball(&(balls[i]));
-        }
-        
+    ball* balls = (ball*) calloc(n, sizeof(ball));
+    //ball balls[10];
+    for (int i=0; i<n; i++){
+        newball(&(balls[i]));
+    }
+    int linenum = 4;
+    line* lines = (line*) calloc(linenum, sizeof(line));
+    lines[0].a = 222.5;
+    lines[0].b = 102.6;
+    lines[0].c = 297.4;
+    lines[0].d = 222.5;
+    build_line(&lines[0]);
+
+    lines[1].a = 297.4;
+    lines[1].b = 222.5;
+    lines[1].c = 177.5;
+    lines[1].d = 297.4;
+    build_line(&lines[1]);
+
+    lines[2].a = 177.5;
+    lines[2].b = 297.4;
+    lines[2].c = 102.6;
+    lines[2].d = 177.5;
+    build_line(&lines[2]);
+
+    lines[3].a = 102.6;
+    lines[3].b = 177.5;
+    lines[3].c = 222.5;
+    lines[3].d = 102.6;
+    build_line(&lines[3]);
     //setup
     
     
-    if (1==1){
+    if (2==1){
         balls[n-1].r=30;
         balls[n-1].m=200;
         balls[n-1].v[0]=0.0;
@@ -296,7 +395,7 @@ void mainloop(SDL_Renderer* ren){
         balls[n-2].v[0]=1.0;
         balls[n-2].v[1]=0.0;
 
-        balls[n-2].c[0]=20.0;
+        balls[n-2].c[0]=100.0;
         balls[n-2].c[1]=100.0;
     }
     
@@ -324,9 +423,15 @@ void mainloop(SDL_Renderer* ren){
             move_ball(&(balls[i]));
             draw_ball_circle(ren, balls[i]);
         }
+        for(int i=0; i<linenum; i++){
+            SDL_RenderDrawLine(ren, lines[i].a, lines[i].b, lines[i].c, lines[i].d);
+        }
         
         for(int i=0; i<n ; i++){
             clip(balls, i);
+        }
+        for (int i=0; i<linenum; i++){
+            clip_line(balls, &lines[i]);
         }
         
         

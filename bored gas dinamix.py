@@ -2,8 +2,8 @@ import numpy as np
 from pygame.locals import *
 import random,pygame,sys
 
-w=640
-h=640
+w=400
+h=400
 disp=pygame.display.set_mode((w,h))
 
 
@@ -139,14 +139,23 @@ for i in range(100):
 
 
 #balls.append(ball(30,[400.0,100.0],[0,0],200))
-#balls.append(ball(30,[200.0,100.0],[-1,0],20))
+balls.append(ball(30,[100.0,100.0],[-1,0],20))
 lines = []
-
+"""
 lines.append(line(100,100,100,300))
 lines.append(line(100,100,300,100))
 lines.append(line(300,300,100,300))
 lines.append(line(300,300,300,100))
 
+lines.append(line(200, 100, 300, 200))  # top → right
+lines.append(line(300, 200, 200, 300))  # right → bottom
+lines.append(line(200, 300, 100, 200))  # bottom → left
+lines.append(line(100, 200, 200, 100))  # left → top
+"""
+lines.append(line(222.5, 102.6, 297.4, 222.5))
+lines.append(line(297.4, 222.5, 177.5, 297.4))
+lines.append(line(177.5, 297.4, 102.6, 177.5))
+lines.append(line(102.6, 177.5, 222.5, 102.6))
 
 while True:
     #print(sum(map(float,balls)))
@@ -171,7 +180,7 @@ while True:
         i.move()
         i.draw(disp)
         energy += np.sqrt(i.v[0]**2 + i.v[1]**2)
-        print(energy)
+    print(energy)
 
 
 
