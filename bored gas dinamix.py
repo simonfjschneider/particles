@@ -4,6 +4,7 @@ import random,pygame,sys
 
 w=400
 h=400
+GRAVITY = True
 disp=pygame.display.set_mode((w,h))
 
 
@@ -62,6 +63,13 @@ class line:
 
             # prolly also have to unstick from here, might be even more important
 
+            if distance < i.r:
+                signed_distance = (self.f1*i.c[0] - self.f2*i.c[1] +self.f3)/self.divisor
+                distance_sign = signed_distance / abs(signed_distance)
+                i.c[0] += self.normal[0]*(distance-i.r)*distance_sign
+                i.c[1] += self.normal[1]*(distance-i.r)*distance_sign
+
+
 
     def draw(self, disp):
         pygame.draw.line(disp, (255,0,0), (self.a, self.b), (self.c,self.d))
@@ -115,7 +123,14 @@ class ball:
 
     def move(self):
         self.c = self.c + self.v
+
         self.c[0] = self.c[0]%w
+
+        if GRAVITY:
+            self.v = self.v/1.005
+            self.v[1] += 0.01
+            if self.c[1] > h: self.v[1] = 0.1
+
         self.c[1] = self.c[1]%h
 
     def draw(self,disp):
@@ -127,7 +142,7 @@ class ball:
 
 balls=[]
 s=2#maxspeed
-for i in range(100):
+for i in range(20):
     a=random.uniform(150,200)
     b=random.uniform(150,200)
 
@@ -135,11 +150,11 @@ for i in range(100):
     c=random.uniform(0,s)
     d=random.uniform(-.1,.1)
     #newball=ball(1,[a,b],[c,d],1)
-    balls.append(ball(3,[a,b],[c,d],3))
+    balls.append(ball(10,[a,b],[c,d],3))
 
 
 #balls.append(ball(30,[400.0,100.0],[0,0],200))
-balls.append(ball(30,[100.0,100.0],[-1,0],20))
+#balls.append(ball(30,[100.0,100.0],[-1,0],20))
 lines = []
 """
 lines.append(line(100,100,100,300))
@@ -152,10 +167,23 @@ lines.append(line(300, 200, 200, 300))  # right → bottom
 lines.append(line(200, 300, 100, 200))  # bottom → left
 lines.append(line(100, 200, 200, 100))  # left → top
 """
-lines.append(line(222.5, 102.6, 297.4, 222.5))
-lines.append(line(297.4, 222.5, 177.5, 297.4))
-lines.append(line(177.5, 297.4, 102.6, 177.5))
-lines.append(line(102.6, 177.5, 222.5, 102.6))
+#lines.append(line(222.5, 102.6, 297.4, 222.5))
+#lines.append(line(297.4, 222.5, 177.5, 297.4))
+#lines.append(line(177.5, 297.4, 102.6, 177.5))
+#lines.append(line(102.6, 177.5, 222.5, 102.6))
+
+lines.append(line(0,100,100,200))
+lines.append(line(400,100,300,200))
+lines.append(line(200,200,100,300))
+lines.append(line(200,200,300,300))
+
+
+lines.append(line(0,350,50,400))
+lines.append(line(400,350,350,400))
+
+lines.append(line(1,0,1,h))
+lines.append(line(w-2,0,w-2,h))
+
 
 while True:
     #print(sum(map(float,balls)))
